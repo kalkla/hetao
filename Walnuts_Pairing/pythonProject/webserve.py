@@ -21,7 +21,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from Walnuts_Pairing.pythonProject import similar
 # 导入项目中的其他模块
 from imageLoad import load_images_from_folder
-from similar import calulate_all_similarity
+import similar
 from getData import filter_details_by_threshold
 from Configdeal import get_config_value
 import Sqldeal  # 导入Sqldeal模块以复用其功能
@@ -736,6 +736,13 @@ def compare_endpoint(temp_walnut_id, size, root_folder):
     try:
         # 加载新核桃的图片
         new_walnut_images = load_images_from_folder(temp_folder)
+        if not new_walnut_images or len(new_walnut_images) < 6:
+            print(f"加载新核桃图片失败或数量不足: {temp_folder}")
+            return jsonify({
+                'success': False,
+                'message': '无法加载新核桃的图片',
+                'top_results': []
+            }), 500
 
         # 获取相同尺寸的所有核桃ID
         walnut_ids = vector_db.get_walnut_ids_by_size(str(size)) if vector_db else []
@@ -759,17 +766,21 @@ def compare_endpoint(temp_walnut_id, size, root_folder):
                     # 构造现有核桃的路径
                     existing_walnut_path = os.path.join(root_folder, walnut_id)
                     if not os.path.exists(existing_walnut_path):
+                        print(f"现有核桃路径不存在: {existing_walnut_path}")
                         continue
 
                     existing_walnut_images = load_images_from_folder(existing_walnut_path)
-
-                    # 检查图片数量
-                    if len(existing_walnut_images) < 6:
+                    if not existing_walnut_images or len(existing_walnut_images) < 6:
+                        print(f"加载现有核桃图片失败或数量不足: {existing_walnut_path}")
                         continue
 
                     similarity_result = calulate_all_similarity(new_walnut_images, existing_walnut_images)
 
                 # 根据配置阈值G过滤结果
+                if similarity_result is None:
+                    print(f"计算相似度失败: {temp_walnut_id} vs {walnut_id}")
+                    continue
+
                 filtered_result = filter_details_by_threshold(similarity_result, G_THRESHOLD)
 
                 # 收集结果
@@ -801,6 +812,10 @@ def compare_endpoint(temp_walnut_id, size, root_folder):
         # 取前三个结果
         top_three_results = comparison_results[:3]
 
+        # 确保返回一个空数组而不是 undefined
+        if not top_three_results:
+            top_three_results = []
+
         # 修改响应格式与webserve2一致
         return jsonify({
             'success': True,
@@ -814,7 +829,13 @@ def compare_endpoint(temp_walnut_id, size, root_folder):
                 shutil.rmtree(temp_folder)
             except:
                 pass
-        return jsonify({'success': False, 'message': str(e)}), 500
+        print(f"compare_endpoint 函数执行异常: {e}")
+        return jsonify({
+            'success': False,
+            'message': '对比过程中发生错误',
+            'top_results': []
+        }), 500
+
 
 
 @app.route('/compare', methods=['POST'])
