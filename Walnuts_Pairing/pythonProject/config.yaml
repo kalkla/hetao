@@ -1,0 +1,14 @@
+G: 0.9
+Goal: 0
+color: 0.1
+#data_folder: C:/Users/Administrator/Desktop/sql/38-1.db
+data_folder: D:/hetaopipei/data/38-1.db
+
+edge: 2.7
+#root_folder: C:/Users/Administrator/Desktop/data/38
+root_folder: D:/hetaopipei/data/38
+
+texture: 0.2
+yuppie: 0.8
+wechat_appid: wx2f2f48d1594220b7
+wechat_secret: df8c781cb06c73863ad8f0ea3b70798e
